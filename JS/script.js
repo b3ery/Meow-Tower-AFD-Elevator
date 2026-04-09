@@ -850,7 +850,7 @@ function abrirPortas() {
   document.getElementById('door-l').classList.add('open');
   document.getElementById('door-r').classList.add('open');
   tr('OPEN_DOORS', 'ELEV_OPEN');
-  transElev('ABRIR_PORTAS', 'PORTAS_ABERTAS');
+  transElev('ABRIR_PORTAS', getEstadoAbertoPorAndar(andarAtualElev));
   tocarTom(440, 0.1);
   setTimeout(() => tocarTom(880, 0.08), 120);
 }
@@ -859,7 +859,7 @@ function fecharPortas(cb) {
   document.getElementById('door-l').classList.remove('open');
   document.getElementById('door-r').classList.remove('open');
   tr('CLOSE_DOORS', 'ELEV_CLOSING');
-  transElev('FECHAR_PORTAS', 'PORTAS_FECHANDO');
+  transElev('FECHAR_PORTAS', getEstadoFechadoPorAndar(andarAtualElev));
   tocarTom(220, 0.1);
   setTimeout(cb, 700);
 }
@@ -963,20 +963,15 @@ function selecionarAndar(floor) {
 
   tocarTom(440, 0.06);
   transElev('SELECIONAR_ANDAR_' + getNumAndar(floor), getEstadoAbertoPorAndar(andarAtualElev));
+
   notificar('🚪 Fechando portas em 1.5s...');
   elevadorEmMovimento = true;
 
   const tempoEspera = portasAbertas ? 1500 : 100;
-  _timerPorta = setTimeout(() => { _timerPorta = null; viajar(floor); }, tempoEspera);
-}
-
-  tocarTom(440, 0.06);
-  transElev('SELECIONAR_ANDAR_' + FNUMS[floor], 'PORTAS_ABERTAS');
-  notificar('🚪 Fechando portas em 1.5s...');
-  elevadorEmMovimento = true;
-
-  const tempoEspera = portasAbertas ? 1500 : 100;
-  _timerPorta = setTimeout(() => { _timerPorta = null; viajar(floor); }, tempoEspera);
+  _timerPorta = setTimeout(() => {
+    _timerPorta = null;
+    viajar(floor);
+  }, tempoEspera);
 }
 
 function registrarPercursoFormal(origem, destino) {
@@ -1161,13 +1156,7 @@ function mostrarTelaViagem(dir, steps, stepTime, onArrive) {
       tvNum.textContent = FNUMS[cur];
       tocarTom(200 + cur * 90, 0.06);
 
-      // Registra passagem por andar intermediário no AFD
-      if (cur !== destFloor && cur !== andarAtualElev) {
-        const passState = 'PASSANDO_' + cur;
-        if (ELEV_STATES.includes(passState)) {
-          transElev('PASSAR_ANDAR_' + FNUMS[cur], passState);
-        }
-      }
+      
     }
 
     if (progress < 1) {
