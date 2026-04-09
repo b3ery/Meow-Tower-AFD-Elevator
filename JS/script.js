@@ -1902,7 +1902,7 @@ function usarBanheiro() {
   _timerBanheiro = setTimeout(() => {
     overlay.remove();
     usandoBanheiro = false;
-    notificar('✅ Banheiro usado! Mãos limpas 🙌');
+    notificar('Banheiro usado! Mãos limpas');
     tocarTom(523, 0.08);
     setTimeout(() => tocarTom(659, 0.08), 80);
     setTimeout(() => tocarTom(784, 0.10), 160);
@@ -2327,7 +2327,7 @@ function gymLockerAction(type) {
   gymCloseLocker();
   const cfg = {
     roupa:    { title: 'TROCANDO ROUPA', dur: 2500, msg: 'Roupa trocada!', color: '#ff3250' },
-    banho:    { title: 'TOMANDO BANHO',  dur: 4000, msg: 'Refreshed!',     color: '#00b4d8' },
+    banho:    { title: 'TOMANDO BANHO',  dur: 4000, msg: 'Limpinho!',     color: '#00b4d8' },
     banheiro: { title: 'BANHEIRO',       dur: 3000, msg: 'Mãos limpas!',   color: '#c77dff' },
   }[type];
   mostrarTelaAcademia(cfg.title, cfg.dur, () => notificar(cfg.msg), cfg.color);
@@ -2394,9 +2394,9 @@ function construirAndar3(furni) {
 
   const doorPositions = [0.30, 0.58, 0.84];
   const doorDefs      = [
-    { num: 303, src: 'IMG/porta-303-apt.png' },
+    { num: 303, src: 'IMG/porta-301-apt.png' },
     { num: 302, src: 'IMG/porta-302-apt.png' },
-    { num: 301, src: 'IMG/porta-301-apt.png' },
+    { num: 301, src: 'IMG/porta-303-apt.png' },
   ];
 
   doorDefs.forEach((d, i) => {
