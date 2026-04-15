@@ -1274,7 +1274,7 @@ function _montarBotoesElevadorAndar(floorNum) {
 
 function sairAndar() {
   tr('LEAVE_FLOOR', 'ELEV_OPEN');
-  transElev('ENTRAR_ELEVADOR', 'PORTAS_ABERTAS');
+  transElev('ENTRAR_ELEVADOR', getEstadoAbertoPorAndar(andarAtualElev));
 
   ['floor-door-l','floor-door-r'].forEach(id => document.getElementById(id).classList.add('open'));
 
@@ -1438,121 +1438,160 @@ function desenharDiagramaAFD() {
   if (!cv) return;
 
   const ctx = cv.getContext('2d');
-  const W   = cv.width;
-  const H   = cv.height;
+  const W = cv.width;
+  const H = cv.height;
+
   ctx.clearRect(0, 0, W, H);
   ctx.fillStyle = '#06001a';
   ctx.fillRect(0, 0, W, H);
 
   const nos = {
-    PARADO_TERREO:   { x: 210, y: 295, label: 'PARADO\nTÉRREO',   cor: '#ff4488' },
-    PORTAS_ABERTAS:  { x: 90,  y: 210, label: 'PORTAS\nABERTAS',  cor: '#44ddff' },
-    PORTAS_FECHANDO: { x: 330, y: 210, label: 'PORTAS\nFECHANDO', cor: '#ffaa00' },
-    SUBINDO:         { x: 330, y: 130, label: 'SUBINDO',           cor: '#88ff66' },
-    DESCENDO:        { x: 90,  y: 130, label: 'DESCENDO',          cor: '#88ff66' },
-    PASSANDO_1:      { x: 210, y: 165, label: 'PASSANDO\nAND. 1', cor: '#ff9fd6' },
-    PASSANDO_2:      { x: 210, y: 100, label: 'PASSANDO\nAND. 2', cor: '#ff9fd6' },
-    CHEGOU:          { x: 380, y: 40,  label: 'CHEGOU',            cor: '#ffee44' },
-    FLOOR_1:         { x: 50,  y: 295, label: 'ANDAR 1',           cor: '#c77dff' },
-    FLOOR_2:         { x: 370, y: 295, label: 'ANDAR 2',           cor: '#c77dff' },
-    FLOOR_3:         { x: 210, y: 40,  label: 'ANDAR 3',           cor: '#c77dff' },
+    T_ABERTO:      { x: 70,  y: 320, label: 'T_ABERTO',      cor: '#44ddff' },
+    T_FECHADO:     { x: 180, y: 320, label: 'T_FECHADO',     cor: '#ffaa00' },
+
+    SUBINDO_T_1:   { x: 290, y: 290, label: 'SUBINDO\nT→1',  cor: '#88ff66' },
+    A1_FECHADO:    { x: 400, y: 290, label: 'A1_FECHADO',    cor: '#ffaa00' },
+    A1_ABERTO:     { x: 510, y: 290, label: 'A1_ABERTO',     cor: '#44ddff' },
+
+    SUBINDO_1_2:   { x: 290, y: 210, label: 'SUBINDO\n1→2',  cor: '#88ff66' },
+    A2_FECHADO:    { x: 400, y: 210, label: 'A2_FECHADO',    cor: '#ffaa00' },
+    A2_ABERTO:     { x: 510, y: 210, label: 'A2_ABERTO',     cor: '#44ddff' },
+
+    SUBINDO_2_3:   { x: 290, y: 130, label: 'SUBINDO\n2→3',  cor: '#88ff66' },
+    A3_FECHADO:    { x: 400, y: 130, label: 'A3_FECHADO',    cor: '#ffaa00' },
+    A3_ABERTO:     { x: 510, y: 130, label: 'A3_ABERTO',     cor: '#44ddff' },
+
+    DESCENDO_3_2:  { x: 180, y: 130, label: 'DESCENDO\n3→2', cor: '#ff6b6b' },
+    DESCENDO_2_1:  { x: 180, y: 210, label: 'DESCENDO\n2→1', cor: '#ff6b6b' },
+    DESCENDO_1_T:  { x: 180, y: 290, label: 'DESCENDO\n1→T', cor: '#ff6b6b' },
   };
 
   const arestas = [
-    { de: 'PARADO_TERREO',  para: 'PORTAS_ABERTAS',  ev: 'ABRIR'     },
-    { de: 'PORTAS_ABERTAS', para: 'PORTAS_FECHANDO', ev: 'FECHAR'    },
-    { de: 'PORTAS_FECHANDO',para: 'SUBINDO',          ev: 'MOVER↑'   },
-    { de: 'PORTAS_FECHANDO',para: 'DESCENDO',         ev: 'MOVER↓'   },
-    { de: 'SUBINDO',        para: 'PASSANDO_1',       ev: 'PASSAR F1' },
-    { de: 'SUBINDO',        para: 'PASSANDO_2',       ev: 'PASSAR F2' },
-    { de: 'DESCENDO',       para: 'PASSANDO_2',       ev: 'PASSAR F2' },
-    { de: 'DESCENDO',       para: 'PASSANDO_1',       ev: 'PASSAR F1' },
-    { de: 'PASSANDO_1',     para: 'PASSANDO_2',       ev: 'CONTINUA↑' },
-    { de: 'PASSANDO_2',     para: 'PASSANDO_1',       ev: 'CONTINUA↓' },
-    { de: 'SUBINDO',        para: 'CHEGOU',            ev: 'CHEGOU'   },
-    { de: 'DESCENDO',       para: 'CHEGOU',            ev: 'CHEGOU'   },
-    { de: 'PASSANDO_1',     para: 'CHEGOU',            ev: 'CHEGOU'   },
-    { de: 'PASSANDO_2',     para: 'CHEGOU',            ev: 'CHEGOU'   },
-    { de: 'CHEGOU',         para: 'PORTAS_ABERTAS',   ev: 'ABRIR'    },
-    { de: 'CHEGOU',         para: 'FLOOR_1',           ev: '→ F1'    },
-    { de: 'CHEGOU',         para: 'FLOOR_2',           ev: '→ F2'    },
-    { de: 'CHEGOU',         para: 'FLOOR_3',           ev: '→ F3'    },
-    { de: 'FLOOR_1',        para: 'PARADO_TERREO',    ev: '→ T'      },
-    { de: 'FLOOR_2',        para: 'PARADO_TERREO',    ev: '→ T'      },
-    { de: 'FLOOR_3',        para: 'PARADO_TERREO',    ev: '→ T'      },
+    // térreo
+    { de: 'T_ABERTO', para: 'T_FECHADO', ev: 'FECHAR_PORTAS' },
+    { de: 'T_FECHADO', para: 'T_ABERTO', ev: 'ABRIR_PORTAS' },
+
+    // subida
+    { de: 'T_FECHADO', para: 'SUBINDO_T_1', ev: 'MOVER_T_1' },
+    { de: 'SUBINDO_T_1', para: 'A1_FECHADO', ev: 'CHEGAR_1' },
+    { de: 'A1_FECHADO', para: 'A1_ABERTO', ev: 'ABRIR_PORTAS' },
+    { de: 'A1_ABERTO', para: 'A1_FECHADO', ev: 'FECHAR_PORTAS' },
+
+    { de: 'A1_FECHADO', para: 'SUBINDO_1_2', ev: 'MOVER_1_2' },
+    { de: 'SUBINDO_1_2', para: 'A2_FECHADO', ev: 'CHEGAR_2' },
+    { de: 'A2_FECHADO', para: 'A2_ABERTO', ev: 'ABRIR_PORTAS' },
+    { de: 'A2_ABERTO', para: 'A2_FECHADO', ev: 'FECHAR_PORTAS' },
+
+    { de: 'A2_FECHADO', para: 'SUBINDO_2_3', ev: 'MOVER_2_3' },
+    { de: 'SUBINDO_2_3', para: 'A3_FECHADO', ev: 'CHEGAR_3' },
+    { de: 'A3_FECHADO', para: 'A3_ABERTO', ev: 'ABRIR_PORTAS' },
+    { de: 'A3_ABERTO', para: 'A3_FECHADO', ev: 'FECHAR_PORTAS' },
+
+    // descida
+    { de: 'A3_FECHADO', para: 'DESCENDO_3_2', ev: 'MOVER_3_2' },
+    { de: 'DESCENDO_3_2', para: 'A2_FECHADO', ev: 'CHEGAR_2' },
+
+    { de: 'A2_FECHADO', para: 'DESCENDO_2_1', ev: 'MOVER_2_1' },
+    { de: 'DESCENDO_2_1', para: 'A1_FECHADO', ev: 'CHEGAR_1' },
+
+    { de: 'A1_FECHADO', para: 'DESCENDO_1_T', ev: 'MOVER_1_T' },
+    { de: 'DESCENDO_1_T', para: 'T_FECHADO', ev: 'CHEGAR_T' },
   ];
 
-  const r = 20;
+  const r = 24;
 
-  // Arestas
+  function drawArrow(x1, y1, x2, y2, color, width, dashed = false) {
+    const dx = x2 - x1;
+    const dy = y2 - y1;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < 1) return;
+
+    const sx = x1 + (dx / dist) * r;
+    const sy = y1 + (dy / dist) * r;
+    const ex = x2 - (dx / dist) * r;
+    const ey = y2 - (dy / dist) * r;
+
+    ctx.save();
+    ctx.strokeStyle = color;
+    ctx.lineWidth = width;
+    if (dashed) ctx.setLineDash([5, 5]);
+
+    ctx.beginPath();
+    ctx.moveTo(sx, sy);
+    ctx.lineTo(ex, ey);
+    ctx.stroke();
+
+    const ang = Math.atan2(ey - sy, ex - sx);
+    ctx.beginPath();
+    ctx.moveTo(ex, ey);
+    ctx.lineTo(ex - 10 * Math.cos(ang - 0.4), ey - 10 * Math.sin(ang - 0.4));
+    ctx.lineTo(ex - 10 * Math.cos(ang + 0.4), ey - 10 * Math.sin(ang + 0.4));
+    ctx.closePath();
+    ctx.fillStyle = color;
+    ctx.fill();
+
+    ctx.restore();
+  }
+
+  // arestas
   arestas.forEach(a => {
     const A = nos[a.de];
     const B = nos[a.para];
     if (!A || !B) return;
 
     const visitada = logAfdElev.some(e => e.from === a.de && e.to === a.para);
-    const dx   = B.x - A.x;
-    const dy   = B.y - A.y;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < 1) return;
 
-    const sx = A.x + (dx / dist) * r;
-    const sy = A.y + (dy / dist) * r;
-    const ex = B.x - (dx / dist) * r;
-    const ey = B.y - (dy / dist) * r;
+    drawArrow(
+      A.x, A.y, B.x, B.y,
+      visitada ? '#c77dff' : 'rgba(255,255,255,.18)',
+      visitada ? 2.4 : 1.2,
+      !visitada
+    );
 
-    ctx.strokeStyle = visitada ? 'rgba(199,125,255,.7)' : 'rgba(255,255,255,.12)';
-    ctx.lineWidth   = visitada ? 2 : 1;
-    ctx.setLineDash(visitada ? [] : [4, 4]);
-    ctx.beginPath(); ctx.moveTo(sx, sy); ctx.lineTo(ex, ey); ctx.stroke();
-
-    // Seta
-    const ang = Math.atan2(ey - sy, ex - sx);
-    ctx.fillStyle = visitada ? 'rgba(199,125,255,.7)' : 'rgba(255,255,255,.12)';
-    ctx.beginPath();
-    ctx.moveTo(ex, ey);
-    ctx.lineTo(ex - 10 * Math.cos(ang - 0.4), ey - 10 * Math.sin(ang - 0.4));
-    ctx.lineTo(ex - 10 * Math.cos(ang + 0.4), ey - 10 * Math.sin(ang + 0.4));
-    ctx.closePath(); ctx.fill();
-
-    // Label
     if (visitada) {
-      ctx.fillStyle  = 'rgba(255,220,100,.7)';
-      ctx.font       = 'bold 7px monospace';
-      ctx.textAlign  = 'center';
-      ctx.fillText(a.ev, (sx + ex) / 2, (sy + ey) / 2 - 5);
+      ctx.fillStyle = '#ffe066';
+      ctx.font = 'bold 8px monospace';
+      ctx.textAlign = 'center';
+      ctx.fillText(a.ev, (A.x + B.x) / 2, (A.y + B.y) / 2 - 8);
     }
-    ctx.setLineDash([]);
   });
 
-  // Nós
+  // nós
   Object.entries(nos).forEach(([id, n]) => {
     const visitado = visitadosElev.has(id);
-    const atual    = estadoAtualElev === id;
+    const atual = estadoAtualElev === id;
 
-    ctx.beginPath(); ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-    ctx.fillStyle   = atual ? n.cor : visitado ? n.cor + '44' : '#0e0030';
+    ctx.beginPath();
+    ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
+    ctx.fillStyle = atual ? n.cor : visitado ? n.cor + '44' : '#0e0030';
     ctx.fill();
-    ctx.strokeStyle = atual ? n.cor : visitado ? n.cor : 'rgba(255,255,255,.15)';
-    ctx.lineWidth   = atual ? 3 : visitado ? 2 : 1;
+
+    ctx.strokeStyle = atual ? '#ffffff' : visitado ? n.cor : 'rgba(255,255,255,.18)';
+    ctx.lineWidth = atual ? 3 : visitado ? 2 : 1;
     ctx.stroke();
 
     if (atual) {
-      ctx.beginPath(); ctx.arc(n.x, n.y, r + 5, 0, Math.PI * 2);
-      ctx.strokeStyle = n.cor + '66'; ctx.lineWidth = 3; ctx.stroke();
+      ctx.beginPath();
+      ctx.arc(n.x, n.y, r + 6, 0, Math.PI * 2);
+      ctx.strokeStyle = n.cor + '66';
+      ctx.lineWidth = 3;
+      ctx.stroke();
     }
 
-    ctx.fillStyle = atual ? '#fff' : visitado ? 'rgba(255,255,255,.9)' : 'rgba(255,255,255,.3)';
-    ctx.font      = `bold ${atual ? 8 : 7}px monospace`;
+    ctx.fillStyle = atual ? '#fff' : visitado ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.4)';
+    ctx.font = `bold ${atual ? 8 : 7}px monospace`;
     ctx.textAlign = 'center';
-    const linhas  = n.label.split('\n');
-    linhas.forEach((l, i) => ctx.fillText(l, n.x, n.y + 3 + (i - (linhas.length - 1) / 2) * 10));
+
+    const linhas = n.label.split('\n');
+    linhas.forEach((linha, i) => {
+      ctx.fillText(linha, n.x, n.y + 3 + (i - (linhas.length - 1) / 2) * 10);
+    });
   });
 
-  ctx.fillStyle = 'rgba(199,125,255,.5)';
-  ctx.font      = '6px monospace';
+  ctx.fillStyle = 'rgba(199,125,255,.6)';
+  ctx.font = '7px monospace';
   ctx.textAlign = 'left';
-  ctx.fillText('● Visitado  ○ Não visitado  ✦ Estado atual', 8, H - 8);
+  ctx.fillText('● visitado   ✦ estado atual   tracejado = transição ainda não usada', 8, H - 10);
 }
 
 // -----------------------------------------------------------------------------
