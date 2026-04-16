@@ -1436,164 +1436,146 @@ function voltarSelecao() {
 function desenharDiagramaAFD() {
   const cv = document.getElementById('afd-canvas');
   if (!cv) return;
-
   const ctx = cv.getContext('2d');
-  const W = cv.width;
-  const H = cv.height;
-
+  const W = cv.width, H = cv.height;   
+ 
   ctx.clearRect(0, 0, W, H);
-  ctx.fillStyle = '#06001a';
-  ctx.fillRect(0, 0, W, H);
-
-  const nos = {
-    T_ABERTO:      { x: 70,  y: 320, label: 'T_ABERTO',      cor: '#44ddff' },
-    T_FECHADO:     { x: 180, y: 320, label: 'T_FECHADO',     cor: '#ffaa00' },
-
-    SUBINDO_T_1:   { x: 290, y: 290, label: 'SUBINDO\nT→1',  cor: '#88ff66' },
-    A1_FECHADO:    { x: 400, y: 290, label: 'A1_FECHADO',    cor: '#ffaa00' },
-    A1_ABERTO:     { x: 510, y: 290, label: 'A1_ABERTO',     cor: '#44ddff' },
-
-    SUBINDO_1_2:   { x: 290, y: 210, label: 'SUBINDO\n1→2',  cor: '#88ff66' },
-    A2_FECHADO:    { x: 400, y: 210, label: 'A2_FECHADO',    cor: '#ffaa00' },
-    A2_ABERTO:     { x: 510, y: 210, label: 'A2_ABERTO',     cor: '#44ddff' },
-
-    SUBINDO_2_3:   { x: 290, y: 130, label: 'SUBINDO\n2→3',  cor: '#88ff66' },
-    A3_FECHADO:    { x: 400, y: 130, label: 'A3_FECHADO',    cor: '#ffaa00' },
-    A3_ABERTO:     { x: 510, y: 130, label: 'A3_ABERTO',     cor: '#44ddff' },
-
-    DESCENDO_3_2:  { x: 180, y: 130, label: 'DESCENDO\n3→2', cor: '#ff6b6b' },
-    DESCENDO_2_1:  { x: 180, y: 210, label: 'DESCENDO\n2→1', cor: '#ff6b6b' },
-    DESCENDO_1_T:  { x: 180, y: 290, label: 'DESCENDO\n1→T', cor: '#ff6b6b' },
-  };
-
-  const arestas = [
-    // térreo
-    { de: 'T_ABERTO', para: 'T_FECHADO', ev: 'FECHAR_PORTAS' },
-    { de: 'T_FECHADO', para: 'T_ABERTO', ev: 'ABRIR_PORTAS' },
-
-    // subida
-    { de: 'T_FECHADO', para: 'SUBINDO_T_1', ev: 'MOVER_T_1' },
-    { de: 'SUBINDO_T_1', para: 'A1_FECHADO', ev: 'CHEGAR_1' },
-    { de: 'A1_FECHADO', para: 'A1_ABERTO', ev: 'ABRIR_PORTAS' },
-    { de: 'A1_ABERTO', para: 'A1_FECHADO', ev: 'FECHAR_PORTAS' },
-
-    { de: 'A1_FECHADO', para: 'SUBINDO_1_2', ev: 'MOVER_1_2' },
-    { de: 'SUBINDO_1_2', para: 'A2_FECHADO', ev: 'CHEGAR_2' },
-    { de: 'A2_FECHADO', para: 'A2_ABERTO', ev: 'ABRIR_PORTAS' },
-    { de: 'A2_ABERTO', para: 'A2_FECHADO', ev: 'FECHAR_PORTAS' },
-
-    { de: 'A2_FECHADO', para: 'SUBINDO_2_3', ev: 'MOVER_2_3' },
-    { de: 'SUBINDO_2_3', para: 'A3_FECHADO', ev: 'CHEGAR_3' },
-    { de: 'A3_FECHADO', para: 'A3_ABERTO', ev: 'ABRIR_PORTAS' },
-    { de: 'A3_ABERTO', para: 'A3_FECHADO', ev: 'FECHAR_PORTAS' },
-
-    // descida
-    { de: 'A3_FECHADO', para: 'DESCENDO_3_2', ev: 'MOVER_3_2' },
-    { de: 'DESCENDO_3_2', para: 'A2_FECHADO', ev: 'CHEGAR_2' },
-
-    { de: 'A2_FECHADO', para: 'DESCENDO_2_1', ev: 'MOVER_2_1' },
-    { de: 'DESCENDO_2_1', para: 'A1_FECHADO', ev: 'CHEGAR_1' },
-
-    { de: 'A1_FECHADO', para: 'DESCENDO_1_T', ev: 'MOVER_1_T' },
-    { de: 'DESCENDO_1_T', para: 'T_FECHADO', ev: 'CHEGAR_T' },
+  ctx.fillStyle = '#06001a'; ctx.fillRect(0, 0, W, H);
+ 
+  // Grade de fundo
+  ctx.strokeStyle = 'rgba(199,125,255,.04)'; ctx.lineWidth = 1;
+  for (let x = 0; x < W; x += 50) { ctx.beginPath(); ctx.moveTo(x,0); ctx.lineTo(x,H); ctx.stroke(); }
+  for (let y = 0; y < H; y += 50) { ctx.beginPath(); ctx.moveTo(0,y); ctx.lineTo(W,y); ctx.stroke(); }
+ 
+  // Labels das colunas
+  const colLabels = [
+    { x: 60,  label: 'TÉRREO',   cor: '#44ddff' },
+    { x: 175, label: 'DESCENDO', cor: '#ff6b6b' },
+    { x: 300, label: 'SUBINDO',  cor: '#88ff66' },
+    { x: 430, label: 'FECHADO',  cor: '#ffaa00' },
+    { x: 560, label: 'ABERTO',   cor: '#44ddff' },
   ];
-
-  const r = 24;
-
-  function drawArrow(x1, y1, x2, y2, color, width, dashed = false) {
-    const dx = x2 - x1;
-    const dy = y2 - y1;
-    const dist = Math.sqrt(dx * dx + dy * dy);
-    if (dist < 1) return;
-
-    const sx = x1 + (dx / dist) * r;
-    const sy = y1 + (dy / dist) * r;
-    const ex = x2 - (dx / dist) * r;
-    const ey = y2 - (dy / dist) * r;
-
-    ctx.save();
-    ctx.strokeStyle = color;
-    ctx.lineWidth = width;
-    if (dashed) ctx.setLineDash([5, 5]);
-
-    ctx.beginPath();
-    ctx.moveTo(sx, sy);
-    ctx.lineTo(ex, ey);
-    ctx.stroke();
-
-    const ang = Math.atan2(ey - sy, ex - sx);
-    ctx.beginPath();
-    ctx.moveTo(ex, ey);
-    ctx.lineTo(ex - 10 * Math.cos(ang - 0.4), ey - 10 * Math.sin(ang - 0.4));
-    ctx.lineTo(ex - 10 * Math.cos(ang + 0.4), ey - 10 * Math.sin(ang + 0.4));
-    ctx.closePath();
-    ctx.fillStyle = color;
-    ctx.fill();
-
-    ctx.restore();
-  }
-
-  // arestas
-  arestas.forEach(a => {
-    const A = nos[a.de];
-    const B = nos[a.para];
-    if (!A || !B) return;
-
-    const visitada = logAfdElev.some(e => e.from === a.de && e.to === a.para);
-
-    drawArrow(
-      A.x, A.y, B.x, B.y,
-      visitada ? '#c77dff' : 'rgba(255,255,255,.18)',
-      visitada ? 2.4 : 1.2,
-      !visitada
-    );
-
-    if (visitada) {
-      ctx.fillStyle = '#ffe066';
-      ctx.font = 'bold 8px monospace';
-      ctx.textAlign = 'center';
-      ctx.fillText(a.ev, (A.x + B.x) / 2, (A.y + B.y) / 2 - 8);
-    }
+  colLabels.forEach(({ x, label, cor }) => {
+    ctx.fillStyle = cor + '55'; ctx.font = 'bold 7px monospace'; ctx.textAlign = 'center';
+    ctx.fillText(label, x, 18);
+    ctx.strokeStyle = cor + '22'; ctx.lineWidth = 1; ctx.setLineDash([4, 8]);
+    ctx.beginPath(); ctx.moveTo(x, 22); ctx.lineTo(x, H - 30); ctx.stroke();
+    ctx.setLineDash([]);
   });
-
-  // nós
-  Object.entries(nos).forEach(([id, n]) => {
-    const visitado = visitadosElev.has(id);
-    const atual = estadoAtualElev === id;
-
-    ctx.beginPath();
-    ctx.arc(n.x, n.y, r, 0, Math.PI * 2);
-    ctx.fillStyle = atual ? n.cor : visitado ? n.cor + '44' : '#0e0030';
-    ctx.fill();
-
-    ctx.strokeStyle = atual ? '#ffffff' : visitado ? n.cor : 'rgba(255,255,255,.18)';
-    ctx.lineWidth = atual ? 3 : visitado ? 2 : 1;
-    ctx.stroke();
-
-    if (atual) {
-      ctx.beginPath();
-      ctx.arc(n.x, n.y, r + 6, 0, Math.PI * 2);
-      ctx.strokeStyle = n.cor + '66';
-      ctx.lineWidth = 3;
-      ctx.stroke();
-    }
-
-    ctx.fillStyle = atual ? '#fff' : visitado ? 'rgba(255,255,255,.95)' : 'rgba(255,255,255,.4)';
-    ctx.font = `bold ${atual ? 8 : 7}px monospace`;
-    ctx.textAlign = 'center';
-
-    const linhas = n.label.split('\n');
-    linhas.forEach((linha, i) => {
-      ctx.fillText(linha, n.x, n.y + 3 + (i - (linhas.length - 1) / 2) * 10);
+ 
+  // Labels das linhas (andares)
+  [{ y:140, label:'3º ANDAR' },{ y:220, label:'2º ANDAR' },{ y:300, label:'1º ANDAR' },{ y:370, label:'TÉRREO' }]
+    .forEach(({ y, label }) => {
+      ctx.fillStyle = 'rgba(255,255,255,.12)'; ctx.font = '6px monospace'; ctx.textAlign = 'left';
+      ctx.fillText(label, 4, y + 3);
+      ctx.strokeStyle = 'rgba(255,255,255,.04)'; ctx.lineWidth = 1; ctx.setLineDash([2, 8]);
+      ctx.beginPath(); ctx.moveTo(90, y); ctx.lineTo(W - 10, y); ctx.stroke();
+      ctx.setLineDash([]);
     });
+ 
+  const nos = {
+    T_ABERTO:     { x: 60,  y: 370, label: 'T\nABERTO',   cor: '#44ddff' },
+    T_FECHADO:    { x: 175, y: 370, label: 'T\nFECHADO',  cor: '#ffaa00' },
+    DESCENDO_1_T: { x: 175, y: 300, label: 'DESC\n1→T',   cor: '#ff6b6b' },
+    DESCENDO_2_1: { x: 175, y: 220, label: 'DESC\n2→1',   cor: '#ff6b6b' },
+    DESCENDO_3_2: { x: 175, y: 140, label: 'DESC\n3→2',   cor: '#ff6b6b' },
+    SUBINDO_T_1:  { x: 300, y: 300, label: 'SUB\nT→1',    cor: '#88ff66' },
+    SUBINDO_1_2:  { x: 300, y: 220, label: 'SUB\n1→2',    cor: '#88ff66' },
+    SUBINDO_2_3:  { x: 300, y: 140, label: 'SUB\n2→3',    cor: '#88ff66' },
+    A1_FECHADO:   { x: 430, y: 300, label: 'A1\nFECHADO', cor: '#ffaa00' },
+    A2_FECHADO:   { x: 430, y: 220, label: 'A2\nFECHADO', cor: '#ffaa00' },
+    A3_FECHADO:   { x: 430, y: 140, label: 'A3\nFECHADO', cor: '#ffaa00' },
+    A1_ABERTO:    { x: 560, y: 300, label: 'A1\nABERTO',  cor: '#44ddff' },
+    A2_ABERTO:    { x: 560, y: 220, label: 'A2\nABERTO',  cor: '#44ddff' },
+    A3_ABERTO:    { x: 560, y: 140, label: 'A3\nABERTO',  cor: '#44ddff' },
+  };
+ 
+  const arestas = [
+    { de:'T_ABERTO',     para:'T_FECHADO',    ev:'FECHAR'   },
+    { de:'T_FECHADO',    para:'T_ABERTO',     ev:'ABRIR'    },
+    { de:'T_FECHADO',    para:'SUBINDO_T_1',  ev:'MOVER_T1' },
+    { de:'SUBINDO_T_1',  para:'A1_FECHADO',   ev:'CHEGAR1'  },
+    { de:'A1_FECHADO',   para:'A1_ABERTO',    ev:'ABRIR'    },
+    { de:'A1_ABERTO',    para:'A1_FECHADO',   ev:'FECHAR'   },
+    { de:'A1_FECHADO',   para:'SUBINDO_1_2',  ev:'MOVER12'  },
+    { de:'SUBINDO_1_2',  para:'A2_FECHADO',   ev:'CHEGAR2'  },
+    { de:'A2_FECHADO',   para:'A2_ABERTO',    ev:'ABRIR'    },
+    { de:'A2_ABERTO',    para:'A2_FECHADO',   ev:'FECHAR'   },
+    { de:'A2_FECHADO',   para:'SUBINDO_2_3',  ev:'MOVER23'  },
+    { de:'SUBINDO_2_3',  para:'A3_FECHADO',   ev:'CHEGAR3'  },
+    { de:'A3_FECHADO',   para:'A3_ABERTO',    ev:'ABRIR'    },
+    { de:'A3_ABERTO',    para:'A3_FECHADO',   ev:'FECHAR'   },
+    { de:'A3_FECHADO',   para:'DESCENDO_3_2', ev:'MOVER32'  },
+    { de:'DESCENDO_3_2', para:'A2_FECHADO',   ev:'CHEGAR2'  },
+    { de:'A2_FECHADO',   para:'DESCENDO_2_1', ev:'MOVER21'  },
+    { de:'DESCENDO_2_1', para:'A1_FECHADO',   ev:'CHEGAR1'  },
+    { de:'A1_FECHADO',   para:'DESCENDO_1_T', ev:'MOVER1T'  },
+    { de:'DESCENDO_1_T', para:'T_FECHADO',    ev:'CHEGAT'   },
+  ];
+ 
+  const r = 22;
+ 
+  function drawArrow(x1,y1,x2,y2,color,width,dashed=false) {
+    const dx=x2-x1, dy=y2-y1, dist=Math.sqrt(dx*dx+dy*dy); if(dist<1) return;
+    const sx=x1+(dx/dist)*r, sy=y1+(dy/dist)*r;
+    const ex=x2-(dx/dist)*r, ey=y2-(dy/dist)*r;
+    ctx.save(); ctx.strokeStyle=color; ctx.lineWidth=width;
+    if(dashed) ctx.setLineDash([5,5]);
+    ctx.beginPath(); ctx.moveTo(sx,sy); ctx.lineTo(ex,ey); ctx.stroke();
+    ctx.setLineDash([]);
+    const ang=Math.atan2(ey-sy,ex-sx);
+    ctx.beginPath(); ctx.moveTo(ex,ey);
+    ctx.lineTo(ex-9*Math.cos(ang-0.4),ey-9*Math.sin(ang-0.4));
+    ctx.lineTo(ex-9*Math.cos(ang+0.4),ey-9*Math.sin(ang+0.4));
+    ctx.closePath(); ctx.fillStyle=color; ctx.fill(); ctx.restore();
+  }
+ 
+  // Arestas
+  arestas.forEach(a => {
+    const A=nos[a.de], B=nos[a.para]; if(!A||!B) return;
+    const visitada = logAfdElev.some(e => e.from===a.de && e.to===a.para);
+    drawArrow(A.x,A.y,B.x,B.y, visitada?'#c77dff':'rgba(255,255,255,.15)', visitada?2.5:1, !visitada);
+    if(visitada) {
+      const ang=Math.atan2(B.y-A.y,B.x-A.x);
+      const offX=-Math.sin(ang)*10, offY=Math.cos(ang)*10;
+      ctx.fillStyle='#ffe066'; ctx.font='bold 7px monospace'; ctx.textAlign='center';
+      ctx.fillText(a.ev, (A.x+B.x)/2+offX, (A.y+B.y)/2+offY-3);
+    }
   });
-
-  ctx.fillStyle = 'rgba(199,125,255,.6)';
-  ctx.font = '7px monospace';
-  ctx.textAlign = 'left';
-  ctx.fillText('● visitado   ✦ estado atual   tracejado = transição ainda não usada', 8, H - 10);
+ 
+  // Nós
+  Object.entries(nos).forEach(([id,n]) => {
+    const visitado=visitadosElev.has(id), atual=estadoAtualElev===id;
+    if(visitado||atual) {
+      ctx.beginPath(); ctx.arc(n.x,n.y,r+8,0,Math.PI*2);
+      ctx.fillStyle=n.cor+(atual?'33':'18'); ctx.fill();
+    }
+    ctx.beginPath(); ctx.arc(n.x,n.y,r,0,Math.PI*2);
+    ctx.fillStyle=atual?n.cor:visitado?n.cor+'55':'#0e0030'; ctx.fill();
+    ctx.strokeStyle=atual?'#ffffff':visitado?n.cor:'rgba(255,255,255,.2)';
+    ctx.lineWidth=atual?3:visitado?2:1; ctx.stroke();
+    if(atual) {
+      ctx.beginPath(); ctx.arc(n.x,n.y,r+6,0,Math.PI*2);
+      ctx.strokeStyle=n.cor+'88'; ctx.lineWidth=2; ctx.stroke();
+    }
+    ctx.fillStyle=atual?'#fff':visitado?'rgba(255,255,255,.95)':'rgba(255,255,255,.35)';
+    ctx.font=`bold ${atual?8:7}px monospace`; ctx.textAlign='center';
+    const linhas=n.label.split('\n');
+    linhas.forEach((l,i) => ctx.fillText(l, n.x, n.y+3+(i-(linhas.length-1)/2)*10));
+  });
+ 
+  // Legenda
+  const leg=[
+    {cor:'#44ddff',txt:'Aberto'},{cor:'#ffaa00',txt:'Fechado'},
+    {cor:'#88ff66',txt:'Subindo'},{cor:'#ff6b6b',txt:'Descendo'},{cor:'#c77dff',txt:'Visitado'},
+  ];
+  ctx.font='7px monospace'; ctx.textAlign='left';
+  leg.forEach((l,i) => {
+    const lx=10+i*116, ly=H-10;
+    ctx.beginPath(); ctx.arc(lx+5,ly-3,5,0,Math.PI*2); ctx.fillStyle=l.cor; ctx.fill();
+    ctx.fillStyle='rgba(255,255,255,.55)'; ctx.fillText(l.txt, lx+13, ly);
+  });
 }
-
 // -----------------------------------------------------------------------------
 // RESTAURANTE — ANDAR 1
 // -----------------------------------------------------------------------------
